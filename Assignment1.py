@@ -1,4 +1,3 @@
-// Respected Ma`am I did not attend first lab due to being out of city for first week, I did Python for everyone course from university of michigan. and based on that knowlege compeleted these tasks, 
 
 //Q1
 name= input("Enter student name: ")
