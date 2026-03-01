@@ -1,0 +1,343 @@
+# comments are for my own understanding please ignore 
+# TASK 1 – BFS
+
+building = [
+    [1, 1, 0, 1],
+    [0, 1, 1, 1],
+    [1, 1, 0, 1],
+    [1, 0, 1, 1]
+]
+
+directions = [(-1,0),(1,0),(0,-1),(0,1)]
+
+# Convert grid to graph (Adjacency List)
+def create_graph(grid):
+    graph = {}
+    rows = len(grid)
+    cols = len(grid[0])
+
+    for i in range(rows):
+        for j in range(cols):
+            if grid[i][j] == 1:
+                neighbors = []
+                for dx, dy in directions:
+                    nx, ny = i+dx, j+dy
+                    if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny] == 1:
+                        neighbors.append((nx,ny))
+                graph[(i,j)] = neighbors
+    return graph
+
+
+# BFS
+def bfs(graph, start, goal):
+    visited = []
+    queue = []
+    parent = {}
+
+    visited.append(start)
+    queue.append(start)
+
+    print("Traversal Order:")
+
+    while queue:
+        node = queue.pop(0)
+        print(node, end=" ")
+
+        if node == goal:
+            break
+
+        for neighbour in graph[node]:
+            if neighbour not in visited:
+                visited.append(neighbour)
+                parent[neighbour] = node
+                queue.append(neighbour)
+
+    # Reconstruct shortest path
+    path = []
+    current = goal
+    while current != start:
+        path.append(current)
+        current = parent[current]
+    path.append(start)
+    path.reverse()
+
+    print("\nShortest Path:", path)
+
+
+graph1 = create_graph(building)
+bfs(graph1, (0,0), (3,3))
+
+
+# TASK 2 – DLS
+
+graph2 = {
+    'A': ['B','C'],
+    'B': ['D','E'],
+    'C': ['F'],
+    'D': ['G'],
+    'E': [],
+    'F': ['H'],
+    'G': [],
+    'H': []
+}
+
+def dls(graph, start, goal, depth_limit):
+    visited = []
+
+    def dfs(node, depth):
+        visited.append(node)
+        print(node, end=" ")
+
+        if node == goal:
+            return True
+
+        if depth == depth_limit:
+            visited.pop()
+            return False
+
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                if dfs(neighbor, depth+1):
+                    return True
+
+        visited.pop()
+        return False
+
+    print(f"\nDepth Limit = {depth_limit}")
+    if dfs(start,0):
+        print("\nGoal Found")
+    else:
+        print("\nGoal Not Found")
+
+dls(graph2,'A','H',2)
+dls(graph2,'A','H',3)
+
+
+# TASK 3 – IDS
+
+def ids(graph, start, goal, max_depth):
+
+    def dls(node, depth, path):
+        if depth < 0:
+            return False
+        path.append(node)
+
+        if node == goal:
+            return True
+
+        for neighbor in graph[node]:
+            if dls(neighbor, depth-1, path):
+                return True
+
+        path.pop()
+        return False
+
+    for depth in range(max_depth+1):
+        print("\nSearching at Depth:", depth)
+        path = []
+        if dls(start, depth, path):
+            print("Goal Found")
+            print("Path:", path)
+            return
+
+    print("Goal Not Found")
+
+
+ids(graph2,'A','G',5)
+
+
+# TASK 4 – UCS
+
+graph4 = {
+    'S': {'A':4,'B':2},
+    'A': {'C':5,'D':10},
+    'B': {'E':3},
+    'C': {'G':4},
+    'D': {'G':1},
+    'E': {'D':4},
+    'G': {}
+}
+
+def ucs(graph, start, goal):
+
+    frontier = [(start,0)]
+    visited = set()
+    cost_so_far = {start:0}
+    parent = {start:None}
+
+    while frontier:
+        frontier.sort(key=lambda x: x[1])
+        current, current_cost = frontier.pop(0)
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        if current == goal:
+            break
+
+        for neighbor, cost in graph[current].items():
+            new_cost = current_cost + cost
+            if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                cost_so_far[neighbor] = new_cost
+                parent[neighbor] = current
+                frontier.append((neighbor,new_cost))
+
+    # Reconstruct Path
+    path = []
+    node = goal
+    while node:
+        path.append(node)
+        node = parent[node]
+    path.reverse()
+
+    print("Least Cost Path:", path)
+    print("Total Cost:", cost_so_far[goal])
+
+
+ucs(graph4,'S','G')
+
+# TASK 5 – Best First Search (Multiple Goals)
+
+from queue import PriorityQueue
+
+# Maze: 1 = walkable, 0 = blocked
+maze = [
+    [1, 1, 1, 1],
+    [1, 0, 1, 1],
+    [1, 1, 1, 0],
+    [1, 1, 1, 1]
+]
+
+start = (0, 0)
+goals = [(3, 3), (2, 1)]   
+
+
+# Manhattan Distance Heuristic
+def heuristic(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+def best_first(maze, start, goal):
+
+    rows = len(maze)
+    cols = len(maze[0])
+
+    frontier = PriorityQueue()
+    frontier.put((0, start))
+
+    visited = set()
+    parent = {start: None}
+
+    while not frontier.empty():
+
+        _, current = frontier.get()
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        if current == goal:
+            break
+
+    
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nx, ny = current[0] + dx, current[1] + dy
+
+            if 0 <= nx < rows and 0 <= ny < cols and maze[nx][ny] == 1:
+                neighbor = (nx, ny)
+
+                if neighbor not in visited:
+                    parent[neighbor] = current
+                    h = heuristic(neighbor, goal)
+                    frontier.put((h, neighbor))
+
+ 
+    path = []
+    node = goal
+
+    while node is not None:
+        path.append(node)
+        node = parent[node]
+
+    path.reverse()
+    return path
+
+def best_first_multiple_goals(maze, start, goals):
+
+    current_start = start
+    remaining_goals = goals.copy()
+    full_path = []
+
+    while remaining_goals:
+
+        nearest_goal = min(remaining_goals, 
+                           key=lambda g: heuristic(current_start, g))
+
+        path = best_first(maze, current_start, nearest_goal)
+
+        if full_path:
+            full_path += path[1:]
+        else:
+            full_path += path
+
+        current_start = nearest_goal
+        remaining_goals.remove(nearest_goal)
+
+    print("Final Path covering all goals:")
+    print(full_path)
+
+
+
+best_first_multiple_goals(maze, start, goals)
+
+
+# TASK 6 – A* with Dynamic Costs
+
+import random
+
+heuristic6 = {'S':7,'A':6,'B':5,'C':3,'D':2,'E':4,'G':0}
+
+def a_star_dynamic(graph, start, goal):
+
+    frontier = [(start, heuristic6[start])]
+    g_cost = {start:0}
+    parent = {start:None}
+
+    while frontier:
+        frontier.sort(key=lambda x:x[1])
+        current,_ = frontier.pop(0)
+
+        if current == goal:
+            break
+
+        # Randomly change one edge cost
+        node = random.choice(list(graph.keys()))
+        if graph[node]:
+            edge = random.choice(list(graph[node].keys()))
+            graph[node][edge] += random.randint(-2,3)
+
+        for neighbor,cost in graph[current].items():
+            new_g = g_cost[current] + cost
+            f = new_g + heuristic6[neighbor]
+
+            if neighbor not in g_cost or new_g < g_cost[neighbor]:
+                g_cost[neighbor] = new_g
+                parent[neighbor] = current
+                frontier.append((neighbor,f))
+
+    # Reconstruct Path
+    path=[]
+    node=goal
+    while node:
+        path.append(node)
+        node=parent[node]
+    path.reverse()
+
+    print("Optimal Path:", path)
+    print("Total Cost:", g_cost[goal])
+
+
+a_star_dynamic(graph4,'S','G')
